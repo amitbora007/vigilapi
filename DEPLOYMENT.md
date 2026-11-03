@@ -82,7 +82,7 @@ The dispatcher function executes health checks, screens for SSRF, dispatches Res
    ```
 4. Deploy the Edge Function:
    ```bash
-   npx supabase functions deploy dispatcher --project-ref <your-project-ref> --no-verify-jwt
+   npx supabase functions deploy dispatcher --project-ref <your-project-ref> --no-verify-jwt --yes
    ```
 
 ### Option C: Automated CI/CD Deployment via GitHub Actions (Every Git Push)

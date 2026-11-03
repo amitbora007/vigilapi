@@ -217,7 +217,7 @@ npx supabase secrets set RESEND_API_KEY=re_your_resend_api_key --project-ref you
 npx supabase secrets set RESEND_FROM_EMAIL="VigilAPI Alerts <onboarding@resend.dev>" --project-ref your-project-id
 
 # Deploy the dispatcher function
-npx supabase functions deploy dispatcher --project-ref your-project-id --no-verify-jwt
+npx supabase functions deploy dispatcher --project-ref your-project-id --no-verify-jwt --yes
 ```
 
 #### Option C: Automated CI/CD on Every Git Push (GitHub Actions)
