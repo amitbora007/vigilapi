@@ -8,15 +8,23 @@
 
 **Live Web Application**: [https://amitbora007.github.io/vigilapi/](https://amitbora007.github.io/vigilapi/)
 
-VigilAPI is a production-minded, multi-tenant HTTP endpoint health monitoring web application built on **ReactJS, Supabase PostgreSQL, Supabase Cron (`pg_cron`), and Supabase Edge Functions**.
+VigilAPI is a multi-tenant HTTP endpoint monitoring application built with **React, Supabase PostgreSQL, `pg_cron`, and Supabase Edge Functions**.
 
-It runs scheduled HTTP health checks **100% independently of client sessions**. Users can close their browser, log out, or shut down their computer without interrupting monitoring schedules.
+Its key design goal is browser-independent scheduling: PostgreSQL schedules dispatcher invocations, and an Edge Function claims due endpoints and performs bounded HTTP checks. Monitoring continues without an active dashboard session, provided the Supabase project, scheduled job, function deployment and required secrets remain operational.
 
 <p align="center">
   <img src="docs/images/dashboard-overview.png" alt="VigilAPI Overview Dashboard" width="100%" />
 </p>
 
 ---
+
+## Engineering design highlights
+
+- **Database-backed scheduling:** `pg_cron` invokes a dispatcher independently of browser sessions.
+- **Concurrency control:** PostgreSQL row locking with `FOR UPDATE SKIP LOCKED` and expiring leases coordinates workers and supports recovery after interrupted work.
+- **Bounded execution:** the dispatcher limits concurrency, applies request timeouts and records execution outcomes.
+- **Security boundaries:** URL/IP validation and response/header handling are designed to reduce SSRF and data-exposure risks.
+- **Operational lifecycle:** execution history, alert cooldowns and scheduled retention cleanup make monitoring behavior inspectable and bounded.
 
 ## Key Features
 
@@ -33,6 +41,14 @@ It runs scheduled HTTP health checks **100% independently of client sessions**. 
 - **Automated Retention**: Daily pg_cron job purges execution logs older than 7 days, preventing unbounded database growth.
 
 ---
+
+## Architecture and execution flow
+
+1. `pg_cron` invokes the scheduled dispatcher through `pg_net`.
+2. The Edge Function validates the scheduler secret and atomically claims due endpoint records.
+3. The worker validates destinations, executes bounded HTTP requests and records status/latency details.
+4. The database calculates the next run time; alerting and retention jobs handle operational follow-through.
+5. The React dashboard reads the persisted state and presents endpoint health, execution history and analytics.
 
 ## Architecture Diagram
 
@@ -242,6 +258,10 @@ SELECT cron.schedule(
 > **Rescheduling the Dispatcher**: You can change the cron cadence anytime directly from the **VigilAPI Dashboard** using the **"Cadence"** button or topbar `pg_cron` chip (e.g., switch between 1m, 2m, 3m, 5m, 10m). Alternatively, run `SELECT cron.alter_job(job_id := (SELECT jobid FROM cron.job WHERE jobname = 'vigilapi-minute-dispatcher'), schedule := '*/3 * * * *');` in the Supabase SQL editor.
 
 ---
+
+## Operational caveats
+
+The monitoring schedule is independent of a user's browser, but it is not independent of the hosting platform. Supabase project availability, Edge Function deployment, cron configuration, secrets, outbound network access and plan quotas all affect execution. The free-tier quota table below is a design estimate, not a guarantee of provider pricing or uninterrupted availability; validate current limits against your Supabase plan.
 
 ## Smoke-Test Verification Procedure
 
